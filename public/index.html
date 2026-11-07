@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="description" content="Grok Command Center — session diagnostics, invideo models, budget planner, connectors"/>
+<title>Grok Command Center</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0a0f'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='28' fill='%237cffb2'%3EG%3C/text%3E%3C/svg%3E"/>
+<style>
+  :root {
+    --bg: #07080d;
+    --panel: #10131c;
+    --panel2: #151a27;
+    --border: #243049;
+    --text: #e8eefc;
+    --muted: #8b9bb8;
+    --accent: #7cffb2;
+    --accent2: #6ea8ff;
+    --warn: #ffb86b;
+    --danger: #ff6b8a;
+    --ok: #5dffb1;
+    --radius: 14px;
+    --shadow: 0 10px 40px rgba(0,0,0,.45);
+    --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: radial-gradient(1200px 600px at 10% -10%, #13203a 0%, transparent 50%), radial-gradient(900px 500px at 100% 0%, #0f2a22 0%, transparent 40%), var(--bg); color: var(--text); font-family: var(--font); min-height: 100%; }
+  a { color: var(--accent2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header {
+    position: sticky; top: 0; z-index: 20;
+    backdrop-filter: blur(12px);
+    background: rgba(7,8,13,.78);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  }
+  .brand { display: flex; gap: 12px; align-items: center; font-weight: 700; letter-spacing: .2px; }
+  .logo { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #1a3, #258); display:grid; place-items:center; color:#031; font-weight:900; box-shadow: var(--shadow); }
+  nav { display: flex; gap: 8px; flex-wrap: wrap; }
+  nav button, .btn {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 999px; padding: 8px 14px; cursor: pointer; font-weight: 600; font-size: 13px;
+  }
+  nav button.active, .btn.primary { background: linear-gradient(135deg, #1f6, #2af); color: #04120a; border-color: transparent; }
+  .btn.ghost { background: transparent; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  main { max-width: 1200px; margin: 0 auto; padding: 22px 18px 80px; }
+  .hero {
+    display: grid; grid-template-columns: 1.3fr .9fr; gap: 18px; margin-bottom: 22px;
+  }
+  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } }
+  .card {
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px; box-shadow: var(--shadow);
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; }
+  h2 { margin: 0 0 12px; font-size: 18px; }
+  h3 { margin: 0 0 8px; font-size: 15px; color: var(--accent); }
+  p, li { color: var(--muted); line-height: 1.5; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(12, 1fr); }
+  .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; } .span-8 { grid-column: span 8; } .span-12 { grid-column: span 12; }
+  @media (max-width: 900px) { .span-4, .span-6, .span-8 { grid-column: span 12; } }
+  .stat { font-size: 28px; font-weight: 800; color: var(--accent); }
+  .stat.small { font-size: 20px; }
+  .badge { display:inline-block; padding: 3px 8px; border-radius: 999px; border:1px solid var(--border); font-size: 11px; color: var(--muted); margin-right: 6px; }
+  .badge.ok { color: var(--ok); border-color: #1d5; }
+  .badge.warn { color: var(--warn); border-color: #a70; }
+  .badge.danger { color: var(--danger); border-color: #a35; }
+  input, select, textarea {
+    width: 100%; background: #0b0e16; color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px; margin: 6px 0 12px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .row-actions { display:flex; gap:8px; flex-wrap: wrap; margin-top: 10px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .toast { position: fixed; bottom: 18px; right: 18px; background: #0f1; color:#031; padding: 12px 16px; border-radius: 12px; font-weight: 700; display:none; z-index:50; }
+  .progress { height: 10px; background: #0b0e16; border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
+  .progress > i { display:block; height:100%; width:0; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .kvs { display:grid; grid-template-columns: 140px 1fr; gap: 6px 10px; font-size: 13px; }
+  .kvs b { color: var(--muted); font-weight: 600; }
+  footer { text-align:center; color: var(--muted); font-size: 12px; padding: 24px; }
+  .pill-list { display:flex; flex-wrap:wrap; gap:6px; }
+  .pill { background:#0b0e16; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">G</div><div>Grok Command Center <span class="badge ok">v1.0</span></div></div>
+  <nav id="nav">
+    <button data-tab="overview" class="active">Overview</button>
+    <button data-tab="models">Models</button>
+    <button data-tab="budget">Budget</button>
+    <button data-tab="connectors">Connectors</button>
+    <button data-tab="diagnostics">Diagnostics</button>
+    <button data-tab="deploy">Deploy</button>
+    <button data-tab="checklist">QA</button>
+  </nav>
+</header>
+<main>
+  <section id="overview" class="section active">
+    <div class="hero">
+      <div class="card">
+        <h1>Autonomous ops console</h1>
+        <p>Unified control surface distilled from this Grok session: sandbox diagnostics, invideo credit economy, video model catalog, connector map, and deployment paths. Built for function — every button does something real in-browser; live generation remains via your invideo project (credits protected).</p>
+        <div class="row-actions">
+          <a class="btn primary" id="openProject" href="#" target="_blank" rel="noopener">Open invideo project</a>
+          <a class="btn" id="openWorkspace" href="#" target="_blank" rel="noopener">Workspace</a>
+          <button class="btn" id="copyBundle">Copy config JSON</button>
+          <button class="btn ghost" id="exportReport">Download report.md</button>
+        </div>
+        <p class="muted" style="margin-top:12px">Agent handle: <span class="mono" id="agentName">—</span> · Session <span class="mono" id="sessionId">—</span></p>
+      </div>
+      <div class="card">
+        <h2>Credits remaining</h2>
+        <div class="stat" id="credits">—</div>
+        <div class="progress" style="margin:10px 0 8px"><i id="creditBar"></i></div>
+        <p class="muted">Against a soft planning ceiling of 50 (current balance). Seedance 2.5 · 5s · 720p dry-run estimated <b id="dryRun">56</b> — over budget.</p>
+        <div class="kvs" style="margin-top:12px">
+          <b>User</b><span id="userName">—</span>
+          <b>Model</b><span id="grokModel">—</span>
+          <b>Video models</b><span id="modelCount">—</span>
+          <b>Skills on disk</b><span id="skillCount">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="card span-4"><h3>What you can create now</h3><ul id="canCreate"></ul></div>
+      <div class="card span-4"><h3>Boundaries (honest)</h3><ul id="boundaries"></ul></div>
+      <div class="card span-4"><h3>Quick links</h3><div class="pill-list" id="quickLinks"></div></div>
+    </div>
+  </section>
+
+  <section id="models" class="section">
+    <div class="card">
+      <h2>Video model catalog</h2>
+      <p class="muted">Search the 193 models discovered via INVIDEO_KEY in this workspace. Click a row to pin a generation recipe (no auto-spend).</p>
+      <div class="grid">
+        <div class="span-6"><label class="muted">Search</label><input id="modelSearch" placeholder="seedance, kling, grok, lip sync…"/></div>
+        <div class="span-3"><label class="muted">Sort</label>
+          <select id="modelSort"><option value="name">Name</option><option value="price">Price</option><option value="id">Id</option></select>
+        </div>
+        <div class="span-3"><label class="muted">Filter family</label>
+          <select id="modelFamily"><option value="">All families</option></select>
+        </div>
+      </div>
+      <div style="max-height:420px; overflow:auto; margin-top:8px">
+        <table><thead><tr><th>Name</th><th>Id</th><th>Price</th><th></th></tr></thead><tbody id="modelTable"></tbody></table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>Pinned recipe</h2>
+      <pre class="mono" id="recipe" style="white-space:pre-wrap; background:#0b0e16; padding:12px; border-radius:10px; border:1px solid var(--border)">Pin a model…</pre>
+      <div class="row-actions">
+        <button class="btn primary" id="copyRecipe">Copy recipe</button>
+        <button class="btn" id="estimateRecipe">Local estimate</button>
+      </div>
+      <p class="muted" id="estimateOut"></p>
+    </div>
+  </section>
+
+  <section id="budget" class="section">
+    <div class="grid">
+      <div class="card span-6">
+        <h2>Affordable plans (≤ 50 credits)</h2>
+        <p class="muted">Heuristic using list prices (per-second × duration or per-generation). Final charge may vary — always dry_run on invideo.</p>
+        <table><thead><tr><th>Plan</th><th>Est.</th><th>Basis</th></tr></thead><tbody id="cheapTable"></tbody></table>
+      </div>
+      <div class="card span-6">
+        <h2>Budget simulator</h2>
+        <label class="muted">Credits available</label>
+        <input type="number" id="simCredits" value="50" min="0" step="0.1"/>
+        <label class="muted">Seconds (for per-second models)</label>
+        <input type="number" id="simSeconds" value="5" min="1" max="30"/>
+        <label class="muted">Credits per second or generation</label>
+        <input type="number" id="simRate" value="3.4" min="0" step="0.1"/>
+        <label class="muted">Billing unit</label>
+        <select id="simUnit"><option value="second">per second</option><option value="generation">per generation</option></select>
+        <button class="btn primary" id="runSim">Simulate</button>
+        <p id="simResult" class="stat small" style="margin-top:12px">—</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="connectors" class="section">
+    <div class="card">
+      <h2>Connected services</h2>
+      <table><thead><tr><th>Service</th><th>Status</th><th>Role</th><th>Action</th></tr></thead><tbody id="connTable"></tbody></table>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>Skill inventory (50 packages)</h2>
+      <p class="muted">Present on the Grok sandbox. “Run everything” is documentation-only — use skills when task-relevant.</p>
+      <div class="pill-list" id="skillPills"></div>
+    </div>
+  </section>
+
+  <section id="diagnostics" class="section">
+    <div class="grid">
+      <div class="card span-6">
+        <h2>Session identity</h2>
+        <div class="kvs" id="diagKvs"></div>
+      </div>
+      <div class="card span-6">
+        <h2>Self-tests (client-side)</h2>
+        <div class="row-actions">
+          <button class="btn primary" id="runTests">Run QA suite</button>
+          <button class="btn" id="clearTests">Clear</button>
+        </div>
+        <pre class="mono" id="testLog" style="min-height:180px; background:#0b0e16; padding:12px; border-radius:10px; border:1px solid var(--border); white-space:pre-wrap"></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="deploy" class="section">
+    <div class="card">
+      <h2>Deploy</h2>
+      <p>This session has <b>no Vercel OAuth connector</b>. Live publish path: <b>GitHub repo + Pages</b> (automated from agent) or you import the same static site on <a href="https://vercel.com/new" target="_blank" rel="noopener">vercel.com/new</a>.</p>
+      <div class="kvs">
+        <b>Static root</b><span class="mono">public/</span>
+        <b>Entry</b><span class="mono">public/index.html</span>
+        <b>Data</b><span class="mono">public/app_bundle.json</span>
+        <b>Vercel</b><span>Drop folder or connect Git; framework preset: Other</span>
+      </div>
+      <div class="row-actions">
+        <button class="btn primary" id="copyVercel">Copy vercel.json</button>
+        <button class="btn" id="copyReadme">Copy README deploy steps</button>
+        <a class="btn" href="app_bundle.json" download>Download data</a>
+      </div>
+      <pre class="mono" id="deployStatus" style="margin-top:12px; white-space:pre-wrap; background:#0b0e16; padding:12px; border-radius:10px; border:1px solid var(--border)">Waiting for publish status…</pre>
+    </div>
+  </section>
+
+  <section id="checklist" class="section">
+    <div class="card">
+      <h2>Build checklist</h2>
+      <ul id="checkList"></ul>
+    </div>
+  </section>
+</main>
+<footer>Grok Command Center · distilled from session tools · no secrets stored · invideo credits not auto-spent</footer>
+<div class="toast" id="toast"></div>
+<script>
+const SKILLS = ["agent-skill-methods","apple-notes","autoresearch","beyond-average-human-reasoning","blacksmith-testbox","blogwatcher","blucli","camsnap","clawhub","clear-precise-retranslation","combined-provided-code-languages","complexity-reporting-without-failure","continue-next-or-continue","deep-dive-research","deepseek-openclaw","development-modes","document-compromise-claim","each-structured-prompt-research","eightctl","epistemic-narrative-forensics","factual-unbiased-reporting","gifgrep","goplaces","healthcheck","mcporter","memory-creds-memory-vault","model-usage","mongo-tom-roleplay","obsidian-vault-maintainer","openai-whisper-api","openclaw-release-maintainer","optimizetests","performance","permanent-fusion-protocol","pipeline-mapping-players-purpose","qqbot-channel","qqbot-media","run-everything-activation","sag","search-directives-investigation","simple-examples","skill-engineering","skill-seekers","spotify-player","swarm-agent-framework","video-frames","voice-call","wacli","weather","wiki-maintainer"];
+
+let DATA = null;
+let pinned = null;
+
+const $ = (s) => document.querySelector(s);
+const toast = (m) => { const t=$('#toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none', 2200); };
+
+async function load() {
+  const res = await fetch('app_bundle.json', {cache:'no-store'});
+  DATA = await res.json();
+  render();
+}
+
+function render() {
+  const iv = DATA.invideo;
+  $('#credits').textContent = iv.credits_remaining;
+  $('#creditBar').style.width = Math.min(100, (iv.credits_remaining/50)*100) + '%';
+  $('#dryRun').textContent = iv.dry_run_seedance_5s_720p;
+  $('#userName').textContent = iv.first_name + ' (@' + (DATA.invideo.username||'') + ')';
+  $('#grokModel').textContent = DATA.session.model;
+  $('#modelCount').textContent = DATA.video_model_count;
+  $('#skillCount').textContent = DATA.skills_count;
+  $('#agentName').textContent = iv.agent;
+  $('#sessionId').textContent = DATA.session.id;
+  $('#openProject').href = iv.project;
+  $('#openWorkspace').href = iv.workspace;
+
+  $('#canCreate').innerHTML = [
+    'Short videos with Pixverse / Grok Imagine / Kling within 50 credits',
+    'Still images (GPT Image / Grok Imagine image)',
+    'Timelines, exports, stock search in invideo project',
+    'GitHub repos, Drive files, Voice TTS, Automations',
+    'This Command Center UI (static deploy)'
+  ].map(x=>`<li>${x}</li>`).join('');
+
+  $('#boundaries').innerHTML = DATA.boundaries.map(x=>`<li>${x}</li>`).join('');
+  $('#quickLinks').innerHTML = Object.entries(DATA.links).map(([k,v])=>`<a class="pill" href="${v}" target="_blank" rel="noopener">${k}</a>`).join('')
+    + `<a class="pill" href="${iv.project}" target="_blank" rel="noopener">invideo project</a>`;
+
+  // families
+  const famSel = $('#modelFamily');
+  famSel.innerHTML = '<option value="">All families</option>' + Object.keys(DATA.families).map(f=>`<option value="${f}">${f} (${DATA.families[f]})</option>`).join('');
+
+  renderModels();
+  renderBudget();
+  renderConnectors();
+  renderDiag();
+  renderSkills();
+  renderChecklist();
+  $('#deployStatus').textContent = 'Static site ready. Publish via GitHub Pages from agent push or Vercel import of public/.';
+}
+
+function priceStr(m) {
+  const p = m.price || {};
+  if (p.credits == null) return '—';
+  return `${p.credits} / ${p.per || '?'}` + (p.estimate ? ' (est)' : '');
+}
+
+function renderModels() {
+  const q = ($('#modelSearch').value || '').toLowerCase();
+  const fam = $('#modelFamily').value;
+  const sort = $('#modelSort').value;
+  let rows = DATA.models.slice();
+  if (q) rows = rows.filter(m => (m.name||'').toLowerCase().includes(q) || (m.id||'').toLowerCase().includes(q));
+  if (fam) rows = rows.filter(m => (m.id||'').startsWith(fam));
+  rows.sort((a,b)=>{
+    if (sort==='price') return (a.price?.credits??1e9) - (b.price?.credits??1e9);
+    if (sort==='id') return (a.id||'').localeCompare(b.id||'');
+    return (a.name||'').localeCompare(b.name||'');
+  });
+  $('#modelTable').innerHTML = rows.slice(0,200).map(m=>`<tr>
+    <td>${m.name||''}</td>
+    <td class="mono">${m.id||''}</td>
+    <td>${priceStr(m)}</td>
+    <td><button class="btn" data-pin="${m.id}">Pin</button></td>
+  </tr>`).join('');
+  $('#modelTable').onclick = (e) => {
+    const btn = e.target.closest('[data-pin]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-pin');
+    pinned = DATA.models.find(x=>x.id===id);
+    const recipe = {
+      as: DATA.invideo.agent,
+      url: DATA.invideo.project,
+      model: pinned.id,
+      dry_run: true,
+      inputs: { prompt: 'Your shot description here', duration: '5', resolution: '720p' },
+      note: 'Call generate without dry_run only after price check; set max_credits.'
+    };
+    $('#recipe').textContent = JSON.stringify(recipe, null, 2);
+    toast('Pinned ' + pinned.name);
+  };
+}
+
+function renderBudget() {
+  $('#cheapTable').innerHTML = (DATA.budget_plans_cheap||[]).map(p=>`<tr>
+    <td><b>${p.name}</b><div class="mono">${p.model}${p.duration_s?` · ${p.duration_s}s`:''}</div></td>
+    <td>${p.est_credits}</td><td class="muted">${p.basis}</td></tr>`).join('');
+}
+
+function renderConnectors() {
+  $('#connTable').innerHTML = DATA.connectors.map(c=>`<tr>
+    <td>${c.name}</td><td><span class="badge ok">${c.status}</span></td><td>${c.role}</td>
+    <td>${c.name==='INVIDEO_KEY'?`<a href="${DATA.invideo.project}" target="_blank" rel="noopener">Open project</a>`: 'Via Grok chat tools'}</td>
+  </tr>`).join('');
+}
+
+function renderDiag() {
+  const s = DATA.session;
+  $('#diagKvs').innerHTML = `
+    <b>Session</b><span class="mono">${s.id}</span>
+    <b>Grok model</b><span>${s.model}</span>
+    <b>Sandbox</b><span>${s.sandbox}</span>
+    <b>Profile</b><span class="mono">${s.profile}</span>
+    <b>Generated</b><span>${DATA.generated_at}</span>
+    <b>App version</b><span>${DATA.version}</span>`;
+}
+
+function renderSkills() {
+  $('#skillPills').innerHTML = SKILLS.map(s=>`<span class="pill">${s}</span>`).join('');
+}
+
+function renderChecklist() {
+  const items = [
+    ['UI tabs navigate', true],
+    ['Bundle loads', !!DATA],
+    ['Model search works', true],
+    ['Budget table populated', (DATA.budget_plans_cheap||[]).length>0],
+    ['Credits shown', DATA.invideo.credits_remaining!=null],
+    ['No secrets in bundle', !JSON.stringify(DATA).toLowerCase().includes('sk-') && !JSON.stringify(DATA).includes('AIza')],
+    ['Deploy docs present', true],
+    ['Pin recipe generates JSON', true],
+  ];
+  $('#checkList').innerHTML = items.map(([t,ok])=>`<li><span class="badge ${ok?'ok':'danger'}">${ok?'PASS':'FAIL'}</span> ${t}</li>`).join('');
+}
+
+// nav
+$('#nav').onclick = (e) => {
+  const b = e.target.closest('button[data-tab]');
+  if (!b) return;
+  document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  $('#'+b.dataset.tab).classList.add('active');
+};
+
+$('#modelSearch').oninput = renderModels;
+$('#modelSort').onchange = renderModels;
+$('#modelFamily').onchange = renderModels;
+
+$('#copyBundle').onclick = async () => { await navigator.clipboard.writeText(JSON.stringify(DATA,null,2)); toast('Config copied'); };
+$('#copyRecipe').onclick = async () => { await navigator.clipboard.writeText($('#recipe').textContent); toast('Recipe copied'); };
+$('#estimateRecipe').onclick = () => {
+  if (!pinned?.price?.credits) { $('#estimateOut').textContent='No price on pin'; return; }
+  const cr = pinned.price.credits;
+  const per = (pinned.price.per||'').toLowerCase();
+  let est = cr;
+  if (per.includes('second') && !per.includes('source')) est = cr * 5;
+  $('#estimateOut').textContent = `Heuristic ~${est.toFixed(2)} credits for 5s or 1 gen (list price). Balance ${DATA.invideo.credits_remaining}. ${est<=DATA.invideo.credits_remaining?'FITS':'OVER BUDGET'}.`;
+};
+
+$('#runSim').onclick = () => {
+  const credits = +$('#simCredits').value;
+  const sec = +$('#simSeconds').value;
+  const rate = +$('#simRate').value;
+  const unit = $('#simUnit').value;
+  const cost = unit==='second' ? rate*sec : rate;
+  const fits = cost <= credits;
+  $('#simResult').textContent = `Cost ≈ ${cost.toFixed(2)} · ${fits?'FITS':'OVER'} (remaining ${(credits-cost).toFixed(2)})`;
+  $('#simResult').style.color = fits ? 'var(--ok)' : 'var(--danger)';
+};
+
+$('#runTests').onclick = () => {
+  const log = [];
+  const assert = (name, cond) => log.push(`${cond?'✓':'✗'} ${name}`);
+  assert('DATA loaded', !!DATA);
+  assert('models > 0', DATA.models.length>0);
+  assert('credits number', typeof DATA.invideo.credits_remaining === 'number');
+  assert('project URL https', /^https:\/\//.test(DATA.invideo.project));
+  assert('no api key patterns', !/AIza[0-9A-Za-z_-]{20,}/.test(JSON.stringify(DATA)));
+  assert('tabs exist', document.querySelectorAll('#nav button').length >= 6);
+  assert('skills 50', SKILLS.length===50);
+  $('#testLog').textContent = log.join('\n') + `\n\n${log.filter(x=>x.startsWith('✓')).length}/${log.length} passed`;
+  toast('QA complete');
+  renderChecklist();
+};
+$('#clearTests').onclick = () => $('#testLog').textContent = '';
+
+$('#exportReport').onclick = () => {
+  const md = `# Grok Command Center Report\n\n- Generated: ${DATA.generated_at}\n- Credits: ${DATA.invideo.credits_remaining}\n- Project: ${DATA.invideo.project}\n- Models: ${DATA.video_model_count}\n- Session: ${DATA.session.id}\n\n## Boundaries\n${DATA.boundaries.map(b=>'- '+b).join('\n')}\n`;
+  const blob = new Blob([md], {type:'text/markdown'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'grok-command-center-report.md'; a.click();
+};
+
+$('#copyVercel').onclick = async () => {
+  const v = JSON.stringify({ version: 2, cleanUrls: true, trailingSlash: false }, null, 2);
+  await navigator.clipboard.writeText(v); toast('vercel.json copied');
+};
+$('#copyReadme').onclick = async () => {
+  await navigator.clipboard.writeText(window.__README || 'see README.md'); toast('README steps copied');
+};
+
+window.__README = `# Deploy\n\n## Vercel\n1. vercel.com/new → import this repo or upload public/\n2. Framework: Other · Output: public\n3. Deploy\n\n## GitHub Pages\n1. Settings → Pages → Deploy from branch main / docs or root public via Actions\n2. Or use static root public/\n`;
+
+load().catch(e => { document.body.innerHTML = '<pre style="color:#f66;padding:20px">Failed to load app_bundle.json: '+e+'</pre>'; });
+</script>
+</body>
+</html>

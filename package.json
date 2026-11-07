@@ -1,0 +1,10 @@
+{
+  "name": "grok-command-center",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Grok session + invideo command center static app",
+  "scripts": {
+    "start": "npx --yes serve public -l 4173",
+    "test": "node scripts/qa.mjs"
+  }
+}
